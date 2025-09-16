@@ -1,5 +1,6 @@
 package com.example.store.controllers;
 
+import com.example.store.dtos.UserDto;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +19,15 @@ public class UserController {
     private final UserRepository userRepository;
 
     @GetMapping
-    public Iterable<User> getAllUsers() {
-        return userRepository.findAll();
+    public Iterable<UserDto> getAllUsers() {
+        return userRepository.findAll().
+                stream()
+                .map(user -> new UserDto(user.getId(),user.getName(), user.getEmail()))
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUser(@PathVariable Long id) {
+    public ResponseEntity<UserDto> getUser(@PathVariable Long id) {
         var user = userRepository.findById(id).orElse(null);
 
         if (user == null) {
@@ -31,6 +35,7 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
 
-        return ResponseEntity.ok(user);
+        var userDto = new UserDto(user.getId(),user.getName(), user.getEmail());
+        return ResponseEntity.ok(userDto);
     }
 }
