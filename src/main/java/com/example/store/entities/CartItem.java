@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "cart_items")
 public class CartItem {
-    @Id
+      @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
@@ -30,5 +30,4 @@ public class CartItem {
     public BigDecimal getTotalPrice(){
         return product.getPrice().multiply(BigDecimal.valueOf(quantity));
     }
-
 }
