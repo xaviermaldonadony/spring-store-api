@@ -58,25 +58,6 @@ public class CartService {
         return cartMapper.toDto(cart);
     }
 
-
-//    var cart = cartRepository.getCartWithItems(cartId).orElse(null);
-//        if(cart == null){
-//        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-//                Map.of("error", "Cart not found.")
-//        );
-//    }
-//
-//    var cartItem = cart.getItem(productId);
-//
-//        if(cartItem == null){
-//        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-//                Map.of("error", "Product not found in the cart.")
-//        );
-//    }
-//
-//        cartItem.setQuantity(request.getQuantity());
-//        cartRepository.save(cart);
-
     public CartItemDto updateItem(UUID cartId, Long productId, Integer quantity){
         var cart = cartRepository.getCartWithItems(cartId).orElse(null);
         if(cart == null){
