@@ -21,7 +21,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        System.out.println("jwtauthenticatinfilter");
         var authHeader = request.getHeader("Authorization");
 
         // Pass the request to next filter, at this point spring security will kick in
