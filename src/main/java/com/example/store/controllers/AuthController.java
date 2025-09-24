@@ -1,5 +1,6 @@
 package com.example.store.controllers;
 
+import com.example.store.config.JwtConfig;
 import com.example.store.dtos.JwtResponse;
 import com.example.store.dtos.LoginRequest;
 import com.example.store.dtos.UserDto;
@@ -26,6 +27,7 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final JwtConfig jwtConfig;
 
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request,
@@ -41,7 +43,7 @@ public class AuthController {
 
         var cookie = new Cookie("refreshToken", refreshToken);
         cookie.setPath("/auth/refresh");
-        cookie.setMaxAge(604800);// 7 days
+        cookie.setMaxAge(jwtConfig.getRefreshTokenExpiration());// 7 days
         cookie.setSecure(true);
         response.addCookie(cookie);
 
