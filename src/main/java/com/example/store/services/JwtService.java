@@ -24,12 +24,15 @@ public class JwtService {
     }
 
     private String generateToken(User user, long tokenExpiration) {
+        // The JWT library expects milliseconds, so we multiply the seconds from config by 1000.
+        long expirationInMillis = System.currentTimeMillis() + (1000L * tokenExpiration);
+
         return Jwts.builder()
                 .subject(user.getId().toString())
                 .claim("email", user.getEmail())
                 .claim("name", user.getName())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 100 * tokenExpiration))
+                .expiration(new Date(expirationInMillis))
                 .signWith(jwtConfig.getSecretKey())
                 .compact();
     }
