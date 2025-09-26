@@ -2,6 +2,7 @@ package com.example.store.controllers;
 
 import com.example.store.dtos.CheckoutRequest;
 import com.example.store.dtos.CheckoutResponse;
+import com.example.store.dtos.ErrorDto;
 import com.example.store.entities.Order;
 import com.example.store.entities.OrderItem;
 import com.example.store.entities.OrderStatus;
@@ -37,13 +38,13 @@ public class CheckoutController {
 
         if (cart == null) {
             return ResponseEntity.badRequest().body(
-                    Map.of("error", "cart not found")
+                    new ErrorDto("cart not found")
             );
         }
 
         if (cart.getItems().isEmpty()) {
             return ResponseEntity.badRequest().body(
-                    Map.of("error", "cart is empty")
+                    new ErrorDto("Cart is empty")
             );
         }
 
