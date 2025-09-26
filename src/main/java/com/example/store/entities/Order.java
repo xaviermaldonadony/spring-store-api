@@ -48,4 +48,8 @@ public class Order {
         });
         return order;
     }
+
+    public boolean isPlacedBy(User customer){
+        return  this.customer.equals(customer);
+    }
 }
