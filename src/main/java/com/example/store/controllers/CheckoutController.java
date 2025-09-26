@@ -60,7 +60,6 @@ public class CheckoutController {
             orderItem.setTotalPrice(item.getTotalPrice());
             orderItem.setUnitPrice(item.getProduct().getPrice());
             order.getItems().add(orderItem);
-            order.getItems().add(orderItem);
         });
 
         orderRepository.save(order);
