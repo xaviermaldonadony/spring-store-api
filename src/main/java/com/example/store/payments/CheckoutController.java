@@ -1,20 +1,14 @@
-package com.example.store.controllers;
+package com.example.store.payments;
 
-import com.example.store.dtos.CheckoutRequest;
-import com.example.store.dtos.CheckoutResponse;
 import com.example.store.dtos.ErrorDto;
 import com.example.store.exceptions.CartEmptyException;
 import com.example.store.exceptions.CartNotFoundException;
-import com.example.store.exceptions.PaymentException;
 import com.example.store.repositories.OrderRepository;
-import com.example.store.services.CheckoutService;
-import com.example.store.services.WebhookRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Map;
 
