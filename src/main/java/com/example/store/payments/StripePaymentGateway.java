@@ -6,6 +6,7 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
+import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +32,8 @@ public class StripePaymentGateway implements PaymentGateway {
                     .setMode(SessionCreateParams.Mode.PAYMENT)
                     .setSuccessUrl(websiteUrl + "/checkout-success?orderId=" + order.getId())
                     .setCancelUrl(websiteUrl + "/checkout-cancel")
-                    .setPaymentIntentData(createPaymentIntent(order));
+                    .setPaymentIntentData(createPaymentIntent(order))
+                    .addExpand("payment_intent"); // Expand the PaymentIntent object
 
             order.getItems().forEach(item -> {
                 var lineItem = createLineItem(item);
@@ -64,7 +66,7 @@ public class StripePaymentGateway implements PaymentGateway {
             System.out.println(event.getType());
 
             return switch (event.getType()) {
-                case "payment_intent.succeeded" ->
+                case "checkout.session.completed" ->
                         Optional.of(new PaymentResult(extractOrderId(event), PaymentStatus.PAID));
 
                 case "payment_intent.payment_failed" ->
@@ -74,14 +76,33 @@ public class StripePaymentGateway implements PaymentGateway {
             };
         } catch (SignatureVerificationException e) {
             throw new PaymentException("Invalid signature");
+        } catch (StripeException e) {
+            // This will catch errors from the API call in extractOrderId
+            throw new PaymentException("Error communicating with Stripe: " + e.getMessage());
         }
     }
 
-    private Long extractOrderId(Event event){
-        var stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(
+    private Long extractOrderId(Event event) throws StripeException {
+        StripeObject stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(
                 () -> new PaymentException("Could not deserialize Stripe event.")
         );
-        var paymentIntent = (PaymentIntent) stripeObject;
+
+        PaymentIntent paymentIntent;
+
+        if (stripeObject instanceof Session session) {
+            // This handles the 'checkout.session.completed' event
+            paymentIntent = session.getPaymentIntentObject();
+
+            // If not expanded (like in a test event), retrieve it manually
+            if (paymentIntent == null) {
+                paymentIntent = PaymentIntent.retrieve(session.getPaymentIntent());
+            }
+        } else if (stripeObject instanceof PaymentIntent pi) {
+            // This handles events like 'payment_intent.payment_failed'
+            paymentIntent = pi;
+        } else {
+            throw new PaymentException("Unexpected event type: " + stripeObject.getClass().getName());
+        }
 
         return Long.valueOf(paymentIntent.getMetadata().get("order_id"));
     }
