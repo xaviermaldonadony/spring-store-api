@@ -29,11 +29,11 @@ public class StripePaymentGateway implements PaymentGateway {
     public CheckoutSession createCheckoutSession(Order order) {
         try {
             var builder = SessionCreateParams.builder()
+                    .setClientReferenceId(order.getId().toString()) // Set the direct link to our order
                     .setMode(SessionCreateParams.Mode.PAYMENT)
                     .setSuccessUrl(websiteUrl + "/checkout-success?orderId=" + order.getId())
                     .setCancelUrl(websiteUrl + "/checkout-cancel")
-                    .setPaymentIntentData(createPaymentIntent(order))
-                    .addExpand("payment_intent"); // Expand the PaymentIntent object
+                    .setPaymentIntentData(createPaymentIntent(order));
 
             order.getItems().forEach(item -> {
                 var lineItem = createLineItem(item);
@@ -50,6 +50,7 @@ public class StripePaymentGateway implements PaymentGateway {
     }
 
     private static SessionCreateParams.PaymentIntentData createPaymentIntent(Order order) {
+        // We can still pass metadata if needed for other purposes, but it's not our primary link.
         return SessionCreateParams.PaymentIntentData.builder()
                 .putMetadata("order_id", order.getId().toString())
                 .build();
@@ -76,35 +77,23 @@ public class StripePaymentGateway implements PaymentGateway {
             };
         } catch (SignatureVerificationException e) {
             throw new PaymentException("Invalid signature");
-        } catch (StripeException e) {
-            // This will catch errors from the API call in extractOrderId
-            throw new PaymentException("Error communicating with Stripe: " + e.getMessage());
         }
     }
 
-    private Long extractOrderId(Event event) throws StripeException {
+    private Long extractOrderId(Event event) {
         StripeObject stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(
                 () -> new PaymentException("Could not deserialize Stripe event.")
         );
 
-        PaymentIntent paymentIntent;
-
         if (stripeObject instanceof Session session) {
-            // This handles the 'checkout.session.completed' event
-            paymentIntent = session.getPaymentIntentObject();
-
-            // If not expanded (like in a test event), retrieve it manually
-            if (paymentIntent == null) {
-                paymentIntent = PaymentIntent.retrieve(session.getPaymentIntent());
-            }
-        } else if (stripeObject instanceof PaymentIntent pi) {
-            // This handles events like 'payment_intent.payment_failed'
-            paymentIntent = pi;
+            // For completed checkouts, the client_reference_id is the most reliable link.
+            return Long.valueOf(session.getClientReferenceId());
+        } else if (stripeObject instanceof PaymentIntent paymentIntent) {
+            // For other events, fall back to the metadata.
+            return Long.valueOf(paymentIntent.getMetadata().get("order_id"));
         } else {
             throw new PaymentException("Unexpected event type: " + stripeObject.getClass().getName());
         }
-
-        return Long.valueOf(paymentIntent.getMetadata().get("order_id"));
     }
 
     private SessionCreateParams.LineItem createLineItem(OrderItem item) {
