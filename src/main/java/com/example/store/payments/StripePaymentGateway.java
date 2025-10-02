@@ -58,16 +58,19 @@ public class StripePaymentGateway implements PaymentGateway {
 
     @Override
     public Optional<PaymentResult> parseWebhookRequest(WebhookRequest request) {
+        var payload = request.getPayload();
+        var signature = request.getHeaders().get("stripe-signature");
+
+        // ===== START DIAGNOSTIC LOGS =====
+        System.out.println("Attempting to verify webhook signature.");
+        System.out.println("Signature Header: " + signature);
+        System.out.println("Webhook Secret Loaded: " + (webhookSecretKey != null && !webhookSecretKey.isEmpty() ? "Present" : "MISSING or EMPTY"));
+        // ===== END DIAGNOSTIC LOGS =====
+
         try {
-            System.out.println("parseWebhookRequest");
-            var payload = request.getPayload();
-            var signature = request.getHeaders().get("stripe-signature");
-
-            System.out.println("before attempting secret key");
             var event = Webhook.constructEvent(payload, signature, webhookSecretKey);
-            System.out.println("after attempting secret key");
 
-            System.out.println(event.getType());
+            System.out.println("SIGNATURE VERIFIED SUCCESSFULLY. Event Type: " + event.getType());
 
             return switch (event.getType()) {
                 case "checkout.session.completed" ->
@@ -79,6 +82,7 @@ public class StripePaymentGateway implements PaymentGateway {
                 default -> Optional.empty();
             };
         } catch (SignatureVerificationException e) {
+            System.out.println("SIGNATURE VERIFICATION FAILED: " + e.getMessage());
             throw new PaymentException("Invalid signature");
         }
     }
