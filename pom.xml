@@ -130,7 +130,11 @@
             <version>29.5.0</version>
         </dependency>
     </dependencies>
-
+    <profiles>
+        <profile>
+            <id>prod</id>
+        </profile>
+    </profiles>
     <build>
         <plugins>
             <plugin>
