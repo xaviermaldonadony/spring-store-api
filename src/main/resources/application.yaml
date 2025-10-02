@@ -5,8 +5,6 @@ spring:
     secret: ${JWT_SECRET}
     accessTokenExpiration: 7200 # 2h
     refreshTokenExpiration: 604800 # 7 D
-  profiles:
-    active: dev
 stripe:
   secretKey: ${STRIPE_SECRET_KEY}
   webhookSecretKey: ${STRIPE_WEBHOOK_SECRET_KEY}
