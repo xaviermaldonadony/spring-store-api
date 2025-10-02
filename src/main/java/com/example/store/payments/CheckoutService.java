@@ -47,6 +47,7 @@ public class CheckoutService {
     }
 
     public void handleWebhookEvent (WebhookRequest request){
+        System.out.println("handleWebhookEvent");
         paymentGateway
             .parseWebhookRequest(request)
             .ifPresent(paymentResult -> {
