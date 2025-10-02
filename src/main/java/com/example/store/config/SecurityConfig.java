@@ -1,6 +1,7 @@
 package com.example.store.config;
 
 import com.example.store.filters.JwtAuthenticationFilter;
+import com.example.store.security.SecurityRules;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import com.example.store.entities.Role;
+
+import java.util.List;
 
 @AllArgsConstructor
 @Configuration
@@ -28,6 +30,7 @@ import com.example.store.entities.Role;
 public class SecurityConfig {
     private final UserDetailsService userDetailService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final List<SecurityRules> featureSecurityRules;
 
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -51,27 +54,16 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // stateless session, totken based auth
+        // stateless session, token based auth
         // disabled CSRF
         // Authorize
         http
             .sessionManagement(c -> c.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(c -> c
-                    .requestMatchers("/swagger-ui/**").permitAll()
-                    .requestMatchers("/swagger-ui.html").permitAll()
-                    .requestMatchers("/v3/api-docs/**").permitAll()
-                    .requestMatchers("/carts/**").permitAll()
-                    .requestMatchers("/admin/**").hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.POST,"/users").permitAll()
-                    .requestMatchers(HttpMethod.GET,"/products/**").permitAll()
-                    .requestMatchers(HttpMethod.POST,"/products/**").hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.PUT,"/products/**").hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.DELETE,"/products/**").hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.POST,"/auth/login").permitAll()
-                    .requestMatchers(HttpMethod.POST,"/auth/refresh").permitAll()
-                    .requestMatchers(HttpMethod.POST,"/checkout/webhook").permitAll()
-                    .anyRequest().authenticated()
+            .authorizeHttpRequests(c -> {
+                featureSecurityRules.forEach(rule -> rule.configure(c));
+                c.anyRequest().authenticated();
+                }
             )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(
