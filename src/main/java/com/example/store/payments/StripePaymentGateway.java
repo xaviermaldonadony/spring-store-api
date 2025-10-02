@@ -6,7 +6,6 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
-import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +28,6 @@ public class StripePaymentGateway implements PaymentGateway {
     public CheckoutSession createCheckoutSession(Order order) {
         try {
             var builder = SessionCreateParams.builder()
-                    .setClientReferenceId(order.getId().toString()) // Set the direct link to our order
                     .setMode(SessionCreateParams.Mode.PAYMENT)
                     .setSuccessUrl(websiteUrl + "/checkout-success?orderId=" + order.getId())
                     .setCancelUrl(websiteUrl + "/checkout-cancel")
@@ -50,7 +48,6 @@ public class StripePaymentGateway implements PaymentGateway {
     }
 
     private static SessionCreateParams.PaymentIntentData createPaymentIntent(Order order) {
-        // We can still pass metadata if needed for other purposes, but it's not our primary link.
         return SessionCreateParams.PaymentIntentData.builder()
                 .putMetadata("order_id", order.getId().toString())
                 .build();
@@ -58,22 +55,13 @@ public class StripePaymentGateway implements PaymentGateway {
 
     @Override
     public Optional<PaymentResult> parseWebhookRequest(WebhookRequest request) {
-        var payload = request.getPayload();
-        var signature = request.getHeaders().get("stripe-signature");
-
-        // ===== START DIAGNOSTIC LOGS =====
-        System.out.println("Attempting to verify webhook signature.");
-        System.out.println("Signature Header: " + signature);
-        System.out.println("Webhook Secret Loaded: " + (webhookSecretKey != null && !webhookSecretKey.isEmpty() ? "Present" : "MISSING or EMPTY"));
-        // ===== END DIAGNOSTIC LOGS =====
-
         try {
+            var payload = request.getPayload();
+            var signature = request.getHeaders().get("stripe-signature");
             var event = Webhook.constructEvent(payload, signature, webhookSecretKey);
 
-            System.out.println("SIGNATURE VERIFIED SUCCESSFULLY. Event Type: " + event.getType());
-
             return switch (event.getType()) {
-                case "checkout.session.completed" ->
+                case "payment_intent.succeeded" ->
                         Optional.of(new PaymentResult(extractOrderId(event), PaymentStatus.PAID));
 
                 case "payment_intent.payment_failed" ->
@@ -82,25 +70,17 @@ public class StripePaymentGateway implements PaymentGateway {
                 default -> Optional.empty();
             };
         } catch (SignatureVerificationException e) {
-            System.out.println("SIGNATURE VERIFICATION FAILED: " + e.getMessage());
             throw new PaymentException("Invalid signature");
         }
     }
 
-    private Long extractOrderId(Event event) {
-        StripeObject stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(
+    private Long extractOrderId(Event event){
+        var stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(
                 () -> new PaymentException("Could not deserialize Stripe event.")
         );
+        var paymentIntent = (PaymentIntent) stripeObject;
 
-        if (stripeObject instanceof Session session) {
-            // For completed checkouts, the client_reference_id is the most reliable link.
-            return Long.valueOf(session.getClientReferenceId());
-        } else if (stripeObject instanceof PaymentIntent paymentIntent) {
-            // For other events, fall back to the metadata.
-            return Long.valueOf(paymentIntent.getMetadata().get("order_id"));
-        } else {
-            throw new PaymentException("Unexpected event type: " + stripeObject.getClass().getName());
-        }
+        return Long.valueOf(paymentIntent.getMetadata().get("order_id"));
     }
 
     private SessionCreateParams.LineItem createLineItem(OrderItem item) {
@@ -114,7 +94,7 @@ public class StripePaymentGateway implements PaymentGateway {
         return SessionCreateParams.LineItem.PriceData.builder()
                 .setCurrency("usd")
                 .setUnitAmountDecimal(
-                    item.getUnitPrice().multiply(BigDecimal.valueOf(100)))
+                        item.getUnitPrice().multiply(BigDecimal.valueOf(100)))
                 .setProductData(createProductData(item))
                 .build();
     }
