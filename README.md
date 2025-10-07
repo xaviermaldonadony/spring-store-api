@@ -28,13 +28,13 @@ The API is currently deployed and hosted on **Railway**, available for testing a
 
 ### 🌐 Live Application Base URL
 
-> **URL:** `https://spring-store-api-production-4251.up.railway.app`
+> **URL:** **[https://spring-store-api-production-4251.up.railway.app](https://spring-store-api-production-4251.up.railway.app)**
 
 ### 📄 Swagger UI (Interactive API Documentation)
 
 Navigate here to view all endpoints, request/response models, and execute live API calls against the deployed service.
 
-> **URL:** `https://spring-store-api-production-4251.up.railway.app/swagger-ui/index.html`
+> **URL:** **[https://spring-store-api-production-4251.up.railway.app/swagger-ui/index.html](https://spring-store-api-production-4251.up.railway.app/swagger-ui/index.html)**
 
 ### 📦 Postman Collection
 
